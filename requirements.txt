@@ -1,0 +1,9 @@
+gunicorn
+flask-restplus
+flask_cors
+flask_sqlalchemy
+sqlalchemy
+geoalchemy2
+psycopg2
+pytest
+requests

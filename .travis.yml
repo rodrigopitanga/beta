@@ -1,0 +1,43 @@
+env:
+  global:
+  - secure: i2wgp0sdCmwsR6izn2SFvJ0mYes9d2JpfHdoJi4A/s5kkr+u52nmouJQBOZ3rixdtx1WGGzIAKps1mB92/+7W+KgWrJ2g37FCdgL7SmMbw1D6XE/ytF2/jRkILhCXZIieApPp9NCIieXJrT12n4j7xaVlnkVh/NKxTlLznH8YJsbui/Zs2V/ZjhcWBgoQjvwBZ3S4MM47pszLInAciJNW/bJ9NxQ0jrrQB1BIL2XbdqqwospRaebXF2q8YnFqj9VYzafT1KzX4EZj2Kd4+OXNSAy6FDNAxJOoz8DI6B39eu7vlNiUBbQOcZT1XzHDm/J6Ct7B9Uz5cIhVMQSkmijW9gWvlAmhN1/n9kOom6P/qsL6d7HpUpeSf7BI6e5oQudA823djkCr/4PL930vTPmflKJjxZ0ciFp7M15z7ZswPV3O+Ba1SO720KiMOKgXATcMe3O008Nw2uMCxs8gOF0IcFQeEryF8BLSF4wgk+KvAwx3QF+jiAhkDHRx2Pa9NRz5rn6G3+YLmSmaw6UvHVewkAAwAbs+CT8cha6BUA85swsocG49R9XTavOtEZYKS5U0CNNqJ4RsB3k4lvOhHImuAowm6xw7Em/T01e1IquowgMqXNHwIaQwz8B41T0sWuWkIpGLexayIhA6PP/yMNR2b3KGaM289Y5/6etrlzGK0A=
+  - secure: UfMEd3xCDo+zDFtMtltOgCXuh1692Xkqqw+meTrYqJJcc4FE48rksvzIijbK2UXYYly1PudCQx4SULpDmh3H1uNbqTuDmp4Zn3hkTLCvyTzAayM/C7d/kPP8aMIGofM/Nl9djtlxbyKvU0YDiqD+w+xzjhXWP73mOhyuJhvOwKyBdKpxFbzemU9d4g6Blf+5p8Nn3mzYP71LWk3VmU1Fawf6au14egjviTPv14mLwgNDLktHuouccfMl9RhY/WFplftIMA4aB0Ds06m1XoDvZCFy4RdzMreFVTSaeVPh/UqV/7W2Tb60I/pAyJbmHV71Xiov8kJnG0jhaVJXFp/eDh9aMf11BcJGhicCrkHcuqIIxu4liUeU/L7pmhRt+8dg/TH7YfKh5XvE9Dop8DKhMqGh1v+yOctDapAMuDlxhqJCrR6PI6wdY5d6zKkHRsWaovl6hHkZC22tbQAZOLDgaiQbZYuip+mW0AlNUpO/Kgy0yMtvUVAcsmJFSjJu+z3izPNRR0B++GRSN8ALclHsnkMOIWGX5Ql1Jh6Y7lA6oU6yv6ljnqWtb9Qh9/g6qKiyUy+bpTHDckKZt39J0740HiZJmHH1csWwX1ZLXuX++Ye3IV2fdbWQQjRZ5wBb5/blxMqBHlAqzJfUjMYnpwnOWPybNfvwYWTWkFj/C2WsOHo=
+  - secure: PM3HfWg9yZoSv9wZWuA5TbFt7BPvKczucD+TTFJFZkb65AQQcn8iLEOHzcbR/F0JFwCzBZU4zw524ugfVUoYefB8LvQhidC5c8l/yay6E/CUOol934TqHuDsqCc8NS8yL3fZW3EG3fq5mBP138PvDcH8X9Cxaus2EP655+YRZ6Hh2DOgzfdDWiaZ9IvQOewamJVfEdEZLTa/NYCAZy7/JAR/iEcFjFoeElxuTa10pkS5EJYmAYHopG9/SjWq7p+1czxDk8DQoJOSxuon/vnpXCzFnnJOKgHNlPXwrXvm3WqdjrMrVwFqHSxo7hJxlV3vk+LY+hu0ozgCTLMtZKNQDytWYqJbzt8MNQwbQjlYEzPBVq14mRAAt8I9cKWnhE8AIEy2hF7yM9Sd4Gr7SKaJYQG2izpuq4/7Wsd7cXlciXsBnCmCkk3AIPw0+XqSGVsvYejmGir9JM95AlkJ+6j9SNKHJuD+A7tSZdC+OPslOVZByZgi24WLSlzBxKM29J0NgZi0vcXBKVHUz3NJ3yJzdpJbVfhydP+W1IUBaDCZLrjd0rGCL5ww7a/GLS9/lEwtPhM7UhYOPdsE0Va7twbCMf/7HGFlwb1HMtpf/HfuU9sHe+TAYDgg2uqmhtW1VL73zH9nyMCupcfURPrXRzgr5Y4kz500hsK4SDnJXDdL8SU=
+
+sudo: required
+
+services:
+- docker
+
+language: python
+
+python:
+- '2.7'
+
+before_install:
+- docker run -d --name db -P -e POSTGRES_DB=openbeta  -e POSTGRES_PASSWORD=password docker.io/mdillon/postgis:9.5
+- export DB_PORT=$(docker inspect --format='{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}' db)
+- export DB_HOST=127.0.0.1
+
+install:
+- pip install -r requirements.txt
+
+script:
+- export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH;
+  else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
+- echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, PR=$PR, BRANCH=$BRANCH"
+- echo "DB_URI=${DB_HOST}:${DB_PORT}"
+- gunicorn --pid gunicorn.pid -D -w 4 -b 127.0.0.1:8000 apiserver.wsgi:app
+- export API_SERVER=http://127.0.0.1:8000
+- curl -Iv ${API_SERVER}
+- pytest tests/test_smoke.py
+- kill -9 $(cat gunicorn.pid)
+
+after_success:
+- docker build -f Dockerfile -t betamax:latest .
+
+deploy:
+  provider: script
+  script: scripts/deploy2dockerhub.sh
+  on:
+    branch: master
