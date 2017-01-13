@@ -31,13 +31,14 @@ script:
 - export API_SERVER=http://127.0.0.1:8000
 - curl -Iv ${API_SERVER}
 - pytest tests/test_smoke.py
-- kill -9 $(cat gunicorn.pid)
+- kill -9 $(cat gunicorn.pid) && rm gunicorn.pid
 
 after_success:
-- docker build -f Dockerfile -t betamax:latest .
+- docker build -f Dockerfile -t beta:latest .
 
 deploy:
   provider: script
   script: scripts/deploy2dockerhub.sh
+  skip_cleanup: true
   on:
     branch: master
