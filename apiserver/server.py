@@ -1,16 +1,24 @@
 from flask import Flask, request, jsonify
-from flask_restplus import Resource, Api
-from flask_restplus import reqparse
+from flask_restful import Resource, Api, reqparse
 from flask_cors import CORS
+import flask_login
 import os
 import logging
 import model
 import Exceptions as Exp
+import json
+import key_helper
 
 app = Flask(__name__)
 CORS(app)
-api = Api(app, version='0.1-alpha', title='OpenBeta API Server',
-                description='OpenBeta API Server - gateway to the community-powered climbing route database')
+
+login_manager = flask_login.LoginManager()
+login_manager.init_app(app)
+
+api = Api(app)
+
+
+
 db_host = os.getenv('DB_HOST', 'localhost')
 db_port = os.getenv('DB_PORT', '5432')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@' + db_host + ':' + db_port + '/openbeta'
@@ -18,20 +26,25 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 model.db.init_app(app)
 
+app.config['db'] = model.db
+
 logging.basicConfig()
 logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 
-@api.route('/routes', defaults={'route_id': None})
-@api.route('/routes/<string:route_id>')
-class Route(Resource):
-    def get(self, route_id):
-        if route_id is None:
-            return routes
-        else:
-            return {route_id: routes[route_id]}
 
-    def post(sef, route_id):
+class Route(Resource):
+    @flask_login.login_required
+    def get(self):
+        rows = model.db.session.query(model.Route).filter(model.Route.id == -1)
+        json = {
+            "type": "FeatureCollection",
+            "features": map(lambda item: item.toJSON(), rows)
+        }
+        return json
+
+    @flask_login.login_required
+    def post(sef):
         json_data = request.get_json(force=True)
         
         if json_data['type'] == 'FeatureCollection':
@@ -48,16 +61,22 @@ class Route(Resource):
             model.db.session.commit()
         return json_data
 
+    #@classmethod
+    #def as_view(cls, name, *class_args, **class_kwargs):
+    #    return Resource.as_view(name, *class_args, **class_kwargs)
+
+api.add_resource(Route, '/routes')
 
 
-@api.route('/boundaries')
 class Boundary(Resource):
    # parser = reqparse.RequestParser()
     #parser.add_argument(location='json', help='GeoJson FeatureCollection data')
 
+    @flask_login.login_required
     def get(self):
         raise Exp.InvalidUsage('This view is gone', status_code=410)
 
+    @flask_login.login_required
     def post(self):
         data = request.form
         if len(data) > 0:
@@ -78,11 +97,12 @@ class Boundary(Resource):
         else:
             raise Exp.InvalidUsage('This view is gone', status_code=410)
 
-    @api.errorhandler(Exp.InvalidUsage)
     def handle_invalid_usage(error):
         response = jsonify(error.to_dict())
         response.status_code = error.status_code
         return response
+
+api.add_resource(Boundary, '/boundaries')
 
 
 def check_top_level_boundary(props_json):
@@ -97,20 +117,36 @@ params = reqparse.RequestParser()
 params.add_argument('loc', help='Lat,Long', location='args')
 params.add_argument('r', help='radius', location='args')
 
-@api.route('/search')
-class Search(Resource):
-    @api.expect(params, validate=True)
-    def get(self):
-        args = request.args.to_dict()
-        return model.searchWithinRadiusInMiles(args['loc'], args['r'])
 
-@api.route('/init')
 class Init(Resource):
+    @flask_login.login_required
     def get(self):
-        model.db.drop_all()
-        model.db.create_all()
+        init_db()
         return "DB initialized"
 
+
+api.add_resource(Init, '/init')
+
+
+@login_manager.request_loader
+def load_user_from_request(request):
+
+    api_key = request.args.get('api_key')
+    try:
+        key_helper.userKeySigner.unsign(api_key)
+    except Exception:
+        return None
+    if api_key:
+        user = model.APIUser.query.filter_by(api_key=api_key, active=True).first()
+        if user:
+            return user
+    return None
+
+def init_db_day0():
+    model.db.drop_all()
+    model.db.create_all()
+    #model.db.session.add(model.APIUser(True))
+    #model.db.session.commit()
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -27,11 +27,7 @@ script:
   else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
 - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, PR=$PR, BRANCH=$BRANCH"
 - echo "DB_URI=${DB_HOST}:${DB_PORT}"
-- gunicorn --pid gunicorn.pid -D -w 4 -b 127.0.0.1:8000 apiserver.wsgi:app
-- export API_SERVER=http://127.0.0.1:8000
-- curl -Iv ${API_SERVER}
-- pytest tests/test_smoke.py
-- kill -9 $(cat gunicorn.pid) && rm gunicorn.pid
+- pytest
 
 after_success:
 - docker build -f Dockerfile -t beta:latest .

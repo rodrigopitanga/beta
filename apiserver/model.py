@@ -5,6 +5,10 @@ from sqlalchemy import func
 import json
 from sqlalchemy.schema import DropTable
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy import types
+import flask_login
+from datetime import datetime
+from key_helper import *
 
 db = SQLAlchemy()
 
@@ -43,6 +47,33 @@ class Boundary(db.Model):
         self.is_top_level = is_top_level
         self.geo = func.ST_SetSRID(func.ST_GeomFromGeoJSON(json.dumps(geojson)), 4326)
         self.properties_json = properties_json
+
+
+class APIUser(db.Model, flask_login.UserMixin):
+    __tablename__ = 'api_users'
+    api_key = db.Column(db.Text, primary_key=True)
+    active = db.Column(db.Boolean)
+    created_ts = db.Column(db.DateTime(timezone=True))
+    mod_ts = db.Column(db.DateTime(timezone=True))
+
+    def __init__(self, active):
+        self.active= active
+        now = datetime.utcnow()
+        self.created_ts = now
+        self.mpd_ts = now
+        self.api_key = genkey(userKeySigner)
+
+    @property
+    def is_active(self):
+        return self.is_active
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def apikey(self):
+        return self.api_key
 
 
 def searchWithinRadiusInMiles(location, radius): 
