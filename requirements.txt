@@ -1,7 +1,8 @@
 gunicorn
-flask-restplus
+flask-restful
 flask_cors
 flask_sqlalchemy
+flask-login
 sqlalchemy
 geoalchemy2
 psycopg2
