@@ -5,7 +5,6 @@ from sqlalchemy import func
 import json
 from sqlalchemy.schema import DropTable
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy import types
 import flask_login
 from datetime import datetime
 from key_helper import *
@@ -51,13 +50,16 @@ class Boundary(db.Model):
 
 class APIUser(db.Model, flask_login.UserMixin):
     __tablename__ = 'api_users'
-    api_key = db.Column(db.Text, primary_key=True)
+    uid = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.Text, primary_key=True, unique=True)
+    api_key = db.Column(db.Text, primary_key=True, unique=True)
     active = db.Column(db.Boolean)
     created_ts = db.Column(db.DateTime(timezone=True))
     mod_ts = db.Column(db.DateTime(timezone=True))
 
-    def __init__(self, active):
-        self.active= active
+    def __init__(self, **kwargs):
+        self.active = kwargs['active']
+        self.email = kwargs['email']
         now = datetime.utcnow()
         self.created_ts = now
         self.mpd_ts = now

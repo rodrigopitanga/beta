@@ -4,11 +4,11 @@ import hmac
 import uuid
 from itsdangerous import Signer
 
-apikey = "apikey"
-secretkey = "climbOn!"
+secretKey = "climbOn!"
 
-userKeySigner = Signer(secretkey)
-adminKeySigner = Signer(secretkey, salt="admin")
+userKeySigner = Signer(secretKey, salt='user')
+adminKeySigner = Signer(secretKey, salt='admin')
+
 
 def genkey(signer):
     # Get a random UUID.
@@ -20,10 +20,3 @@ def genkey(signer):
     # base64 encode...
     encodedKey = base64.encodestring(key).replace('\n', '')
     return signer.sign(encodedKey)
-
-
-if __name__ == '__main__':
-    userKey = genkey(userKeySigner)
-    print userKey
-    s = userKeySigner.unsign(userKey)
-    print s

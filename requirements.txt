@@ -3,8 +3,10 @@ flask-restful
 flask_cors
 flask_sqlalchemy
 flask-login
+Flask-Script
 sqlalchemy
 geoalchemy2
 psycopg2
 pytest
 requests
+validate_email
