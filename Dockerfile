@@ -5,7 +5,11 @@ RUN mkdir -p ${APP_HOME}
 WORKDIR ${APP_HOME}
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN echo $(which python) && \
+    virtualenv -p $(which python) venv && \
+    . venv/bin/activate && \
+    pip install --no-cache-dir -r requirements.txt && \
+    deactivate
 COPY apiserver/*.py apiserver/
 COPY docker-start.sh .
 

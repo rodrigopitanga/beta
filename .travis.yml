@@ -30,7 +30,11 @@ script:
 - pytest
 
 after_success:
-- docker build -f Dockerfile -t beta:latest .
+- docker build -f Dockerfile -t apiserver:latest .
+- docker run -d --name apiserver -p 8000:8000 --link db -e ${DB_HOST} -e ${DB_PORT} apiserver:latest
+- sleep 3
+- docker logs apiserver
+- curl -v http://localhost:8000/routes
 
 deploy:
   provider: script
