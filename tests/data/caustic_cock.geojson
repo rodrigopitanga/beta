@@ -1,0 +1,22 @@
+{
+   "type":"FeatureCollection",
+   "features":[
+      {
+         "type":"Feature",
+         "geometry":{
+            "type":"Point",
+            "coordinates":[
+               -115.42279,
+               36.14893
+            ]
+         },
+         "properties":{
+            "name":"Caustic Cock",
+            "grade": {
+               "type": "yds",
+               "value": "5.11b"
+            }
+         }
+      }
+   ]
+}
