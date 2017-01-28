@@ -35,12 +35,16 @@ class Route(Resource):
 
     @flask_login.login_required
     def get(self):
-        rows = model.db.session.query(model.Route).filter(model.Route.id == -1)
-        json = {
+        if 'latlng' in request.args and 'r' in request.args:
+            latlng = request.args['latlng']
+            r = request.args['r']
+            return model.search_within_radius_in_miles(location=latlng, radius=r)
+        elif 'boundary_id' in request.args:
+            return model.search_within_boundary_by_id(request.args['boundary_id'])
+        return {
             "type": "FeatureCollection",
-            "features": map(lambda item: item.toJSON(), rows)
+            "features": {}
         }
-        return json
 
     @flask_login.login_required
     def post(self):
@@ -49,12 +53,12 @@ class Route(Resource):
         if json_data['type'] == 'FeatureCollection':
             features = json_data['features']
             for item in features:
-                route = model.Route(item['geometry'], item['properties'])
+                route = model.Route(item)
                 model.db.session.add(route)
                 model.db.session.commit()
 
         elif json_data['type'] == 'Feature':
-            route = model.Route(json_data['geometry'], json_data['properties'])
+            route = model.Route(json_data['feature'])
             model.db.session.add(route)
             model.db.session.commit()
         return json_data
@@ -67,7 +71,7 @@ class Boundary(Resource):
 
     @flask_login.login_required
     def get(self):
-        raise Exp.InvalidUsage('This view is gone', status_code=410)
+        return "Error", 410
 
     @flask_login.login_required
     def post(self):
@@ -76,30 +80,21 @@ class Boundary(Resource):
             for key in data:
                 print "key: %s , value: %s" % (key, data[key])
 
-        json_data = request.get_json()
-        if json_data['type'] == 'FeatureCollection':
+        json_data = request.get_json(force=True)
+        if json_data['type'].upper() == 'FEATURECOLLECTION':
             features = json_data['features']
             for item in features:
-                props = item['properties']
-                is_top_level = check_top_level_boundary(props)
-                boundary = model.Boundary(item['geometry'], is_top_level, item['properties'])
+                boundary = model.Boundary(item)
                 model.db.session.add(boundary)
                 model.db.session.commit()
-                print(boundary.id)
             return 'OK'
-        else:
-            raise Exp.InvalidUsage('This view is gone', status_code=410)
+        elif json_data['type'].upper() == 'FEATURE':
+            boundary = model.Boundary(json_data['feature'])
+            model.db.session.add(boundary)
+            model.db.session.commit()
+            return 'OK'
 
 api.add_resource(Boundary, '/boundaries')
-
-
-def check_top_level_boundary(props_json):
-    """Check whether a boundary top-level"""
-    if 'metadata' in props_json:
-        metadata = props_json['metadata']
-        if 'isTopLevel' in metadata and metadata['isTopLevel'] is True:
-            return True
-    return False
 
 
 @login_manager.request_loader

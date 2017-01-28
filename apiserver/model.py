@@ -1,12 +1,13 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import JSONB
 from geoalchemy2 import Geometry
-from sqlalchemy import func
-import json
+from sqlalchemy import func, ForeignKey, PrimaryKeyConstraint, event
+from sqlalchemy.orm import relationship
 from sqlalchemy.schema import DropTable
 from sqlalchemy.ext.compiler import compiles
 import flask_login
 from datetime import datetime
+import json
 from key_helper import *
 
 db = SQLAlchemy()
@@ -16,16 +17,20 @@ class Route(db.Model):
     __tablename__ = 'routes'
     id = db.Column(db.Integer, primary_key=True)
     geo = db.Column(Geometry(geometry_type='POINT', srid=4326), unique=True)
+    name = db.Column(db.Text, index=True)
+    grade = db.Column(db.Text)
+    grade_type = db.Column(db.Text, ForeignKey('grade_types.id'))
     properties_json = db.Column(JSONB)
 
-    def __init__(self, geojson, properties_json):
-        self.geo = func.ST_SetSRID(func.ST_GeomFromGeoJSON(json.dumps(geojson)), 4326)
-
-        print self.geo
-        self.properties_json = properties_json
+    def __init__(self, geojson):
+        self.geo = func.ST_SetSRID(func.ST_GeomFromGeoJSON(json.dumps(geojson['geometry'])), 4326)
+        self.name = geojson['properties']['name']
+        self.grade = geojson['properties']['grade']['value']
+        self.grade_type = geojson['properties']['grade']['type']
+        self.properties_json = geojson['properties']    # store raw data
 
     def __repr__(self):
-        return '<Route %r>' % json.loads(self.properties_json)['name']
+        return '<Route %r>' % self.name
 
     def toJSON(self):
         return {
@@ -34,18 +39,70 @@ class Route(db.Model):
             "properties": self.properties_json
         }
 
+    def __eq__(self, other):
+        """Override the default Equals behavior"""
+        if isinstance(other, self.__class__):
+            lhs = json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo)))
+            rhs = json.loads(db.session.scalar(func.ST_AsGeoJSON(other.geo)))
+            return lhs == rhs
+        return NotImplemented
+
+    def __ne__(self, other):
+        """Define a non-equality test"""
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        """Override the default hash behavior (that returns the id or the object)"""
+        return hash(self.geo)
+
+
+class GradeType(db.Model):
+    __tablename__ = 'grade_types'
+    id = db.Column(db.Text, primary_key=True, unique=True)
+    full_name = db.Column(db.Text)
+
+    def __init__(self, id, full_name):
+        self.id = id
+        self.full_name = full_name
+
+
+@event.listens_for(GradeType.__table__, 'after_create')
+def insert_initial_values(*args, **kwargs):
+    db.session.add(GradeType(id='yds', full_name='Yosemite Decimal System'))
+    db.session.add(GradeType(id='v', full_name='Hueco V-scale'))
+    db.session.commit()
+
+event.listen(GradeType.__table__, 'after_create', insert_initial_values)
+
+
+class GradeDetail(db.Model):
+    __tablename__ = 'grade_details'
+    id = db.Column(db.Text, ForeignKey('grade_types.id'))
+    value = db.Column(db.Text)
+    weight = db.Column(db.Integer)
+    __table_args__ = (PrimaryKeyConstraint(id, weight),)
+
 
 class Boundary(db.Model):
     __tablename__ = 'boundaries'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.Text, primary_key=True, index=True)
     is_top_level = db.Column(db.Boolean)
     geo = db.Column(Geometry(geometry_type='POLYGON', srid=4326), unique=True)
     properties_json = db.Column(JSONB)
 
-    def __init__(self, geojson, is_top_level, properties_json):
-        self.is_top_level = is_top_level
-        self.geo = func.ST_SetSRID(func.ST_GeomFromGeoJSON(json.dumps(geojson)), 4326)
-        self.properties_json = properties_json
+    def __init__(self, geojson):
+        self.name = geojson['properties'].get('name')
+        self.is_top_level = check_top_level_boundary(geojson)
+        self.geo = func.ST_SetSRID(func.ST_GeomFromGeoJSON(json.dumps(geojson['geometry'])), 4326)
+        self.properties_json = geojson['properties']
+
+
+def check_top_level_boundary(geojson):
+    """Check whether a boundary top-level"""
+    if 'is_top_level' in geojson and geojson['is_top_level'] is True:
+        return True
+    return False
 
 
 class APIUser(db.Model, flask_login.UserMixin):
@@ -78,13 +135,25 @@ class APIUser(db.Model, flask_login.UserMixin):
         return self.api_key
 
 
-def searchWithinRadiusInMiles(location, radius): 
-    r_inMeters = str(float(radius) * 1609.34)
+def search_within_boundary_by_id(boundary_id):
+    rows = db.session.query(Route, Boundary)\
+        .filter("ST_WITHIN(routes.geo, boundaries.geo)")\
+        .filter("boundaries.id=:id")\
+        .params(id=boundary_id).all()
+
+    return {
+        "type": "FeatureCollection",
+        "features": map(lambda item: item.toJSON(), rows)
+    }
+
+
+def search_within_radius_in_miles(location, radius):
+    r_in_meter = str(float(radius) * 1609.34)
     coordinates = location.split(",")
 
     rows = db.session.query(Route).\
-            filter('ST_Distance_Sphere(geo, ST_MakePoint(:lat,:lng))<=:r').\
-            params(lat=coordinates[0], lng=coordinates[1], r=r_inMeters).all()
+        filter('ST_DistanceSphere(geo, ST_MakePoint(:lat,:lng))<=:r').\
+        params(lat=coordinates[0], lng=coordinates[1], r=r_in_meter).all()
 
     json = {
         "type":"FeatureCollection",

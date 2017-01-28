@@ -1,0 +1,38 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+    {
+        "type": "Feature",
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+                -115.42682379484177,
+                36.167850707802785
+            ]
+        },
+        "properties": {
+            "name": "Ying and Yang",
+            "grade": {
+              "type": "yds",
+              "value": "5.11a"
+            }
+        }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -115.42685329914093,
+          36.16792216348712
+        ]
+      },
+      "properties": {
+        "name": "Atman",
+        "grade": {
+          "type": "yds",
+          "value": "5.10a"
+        }
+      }
+    }]
+}
