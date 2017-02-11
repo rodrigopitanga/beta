@@ -76,10 +76,11 @@ class Route(Resource):
         elif 'boundary_id' in request.args:
             features = model.search_within_boundary_by_id(request.args['boundary_id'])
             return features;
-        return {
-            "type": "FeatureCollection",
-            "features": {}
-        }
+        else:
+            return {
+                "type": "FeatureCollection",
+                "features": {}
+            }
 
     @flask_login.login_required
     def post(self):

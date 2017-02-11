@@ -15,5 +15,4 @@ def test_post(app, db, good_key, default_headers, post_geojson):
     with app.test_client() as client:
         s = "/routes?api_key={}&boundary_id={}".format(good_key, "1")
         res = client.get(s)
-        print res.data
-        # TODO: assert data
+        print res.data        # TODO: assert data

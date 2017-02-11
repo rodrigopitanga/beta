@@ -2,6 +2,7 @@ import json
 from apiserver.model import Route
 import utils
 
+
 def test_post(app, apiusers, db, default_headers, post_geojson):
     with app.test_client() as client:
         res = client.get('/routes?api_key=' + apiusers['valid'].api_key, default_headers['get'])
@@ -40,5 +41,3 @@ def test_query_by_polygon(app, post_geojson):
     assert ret1['response'].status_code == 200
     ret2 = post_geojson('caustic_cock.geojson')
     assert ret2['response'].status_code == 200
-
-   # with app.test_client() as client:

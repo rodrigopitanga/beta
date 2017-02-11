@@ -38,7 +38,7 @@ def good_key(apiusers):
     return apiusers['valid'].api_key
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def default_headers():
     return dict(get=[('Accept', 'application/json')], post=[('Content-Type', 'application/json')])
 
