@@ -2,15 +2,17 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import JSONB
 from geoalchemy2 import Geometry
 from sqlalchemy import func, ForeignKey, PrimaryKeyConstraint, event
-from sqlalchemy.orm import relationship
 from sqlalchemy.schema import DropTable
 from sqlalchemy.ext.compiler import compiles
 import flask_login
 from datetime import datetime
 import json
+import collections
 from key_helper import *
 
 db = SQLAlchemy()
+
+FeatureSet = collections.namedtuple('FeatureSet', 'route, boundary', verbose=True)
 
 
 class Route(db.Model):
@@ -32,7 +34,7 @@ class Route(db.Model):
     def __repr__(self):
         return '<Route %r>' % self.name
 
-    def toJSON(self):
+    def to_json(self):
         return {
             "type": "Feature",
             "geometry": json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo))),
@@ -97,6 +99,13 @@ class Boundary(db.Model):
         self.geo = func.ST_SetSRID(func.ST_GeomFromGeoJSON(json.dumps(geojson['geometry'])), 4326)
         self.properties_json = geojson['properties']
 
+    def to_json(self):
+        return {
+            "type": "Feature",
+            "geometry": json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo))),
+            "properties": self.properties_json
+        }
+
 
 def check_top_level_boundary(geojson):
     """Check whether a boundary top-level"""
@@ -143,24 +152,36 @@ def search_within_boundary_by_id(boundary_id):
 
     return {
         "type": "FeatureCollection",
-        "features": map(lambda item: item.toJSON(), rows)
+        "features": map(lambda item: item.to_json(), rows)
     }
 
 
-def search_within_radius_in_miles(location, radius):
+def search_within_radius_in_miles(location, radius, route=True, boundary=False):
     r_in_meter = str(float(radius) * 1609.34)
     coordinates = location.split(",")
 
-    rows = db.session.query(Route).\
-        filter('ST_DistanceSphere(geo, ST_MakePoint(:lat,:lng))<=:r').\
-        params(lat=coordinates[0], lng=coordinates[1], r=r_in_meter).all()
+    route_rows = list()
+    boundary_rows = list()
 
-    json = {
-        "type":"FeatureCollection",
-        "features": map(lambda item: item.toJSON(), rows)
+    if route:
+        route_rows = db.session.query(Route).\
+            filter('ST_DistanceSphere(geo, ST_MakePoint(:lat,:lng))<=:r').\
+            params(lat=coordinates[0], lng=coordinates[1], r=r_in_meter).all()
+
+    if boundary:
+        boundary_rows = db.session.query(Boundary).\
+            filter('ST_DistanceSphere(geo, ST_MakePoint(:lat,:lng))<=:r').\
+            params(lat=coordinates[0], lng=coordinates[1], r=r_in_meter).all()
+
+    route_json = {
+        "type": "FeatureCollection",
+        "features": map(lambda item: item.to_json(), route_rows)
     }
-
-    return json
+    boundary_json = {
+        "type": "FeatureCollection",
+        "features": map(lambda item: item.to_json(), boundary_rows)
+    }
+    return FeatureSet(route=route_json, boundary=boundary_json)
 
 
 @compiles(DropTable, "postgresql")
