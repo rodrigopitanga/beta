@@ -17,6 +17,7 @@ def app():
 def db(app):
     db = app.config['db']
     with app.app_context():
+        db.drop_all()
         db.create_all()
     yield db
     db.session.close()
@@ -53,5 +54,17 @@ def post_geojson(app, good_key, default_headers):
                     res = client.post('/routes?api_key=' + good_key, default_headers['post'], data=s)
                 else:
                     res = client.post('/boundaries?api_key=' + good_key, default_headers['post'], data=s)
+                return dict(expected=expected_data, response=res)
+    return load
+
+
+@pytest.fixture(scope="function")
+def post_featureset_geojson(app, good_key, default_headers):
+    def load(file_name):
+        with app.test_client() as client:
+            with open(TEST_DIR +'/data/' + file_name) as f:
+                s = f.read()
+                expected_data = json.loads(s)
+                res = client.post('/featureset?api_key=' + good_key, default_headers['post'], data=s)
                 return dict(expected=expected_data, response=res)
     return load

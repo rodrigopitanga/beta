@@ -5,7 +5,6 @@ import flask_login
 import os
 import logging
 import model
-import Exceptions as Exp
 import key_helper
 
 app = Flask(__name__)
@@ -31,6 +30,40 @@ if not os.getenv('NO_LOGGING'):
     logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 
+class FeatureSetEndpoint(Resource):
+    """FeatureSet are collection of routes, boundaries, cliffs
+       While not as human-friendly as /route and /boundary this endpoint can be used by apps
+       to get all matching features in one single api call
+    """
+    @flask_login.login_required
+    def get(self):
+        if 'latlng' in request.args and 'r' in request.args:
+            latlng = request.args['latlng']
+            r = request.args['r']
+            featureset = model.search_within_radius_in_miles(location=latlng, radius=r, route=True, boundary=True)
+            return featureset_output_formatter(featureset)
+        else:
+            return featureset_output_formatter()
+
+    @flask_login.login_required
+    def post(self):
+        json_data = request.get_json(force=True)
+        if json_data['type'].upper() == 'FEATURECOLLECTION':
+            features = json_data['features']
+            for item in features:
+                if item['geometry']['type'] == 'Polygon':
+                    boundary = model.Boundary(item)
+                    model.db.session.add(boundary)
+                    model.db.session.commit()
+                else:
+                    route = model.Route(item)
+                    model.db.session.add(route)
+                    model.db.session.commit()
+
+
+api.add_resource(FeatureSetEndpoint, '/featureset')
+
+
 class Route(Resource):
 
     @flask_login.login_required
@@ -38,13 +71,16 @@ class Route(Resource):
         if 'latlng' in request.args and 'r' in request.args:
             latlng = request.args['latlng']
             r = request.args['r']
-            return model.search_within_radius_in_miles(location=latlng, radius=r)
+            featureset = model.search_within_radius_in_miles(location=latlng, radius=r)
+            return featureset.route
         elif 'boundary_id' in request.args:
-            return model.search_within_boundary_by_id(request.args['boundary_id'])
-        return {
-            "type": "FeatureCollection",
-            "features": {}
-        }
+            features = model.search_within_boundary_by_id(request.args['boundary_id'])
+            return features;
+        else:
+            return {
+                "type": "FeatureCollection",
+                "features": {}
+            }
 
     @flask_login.login_required
     def post(self):
@@ -115,6 +151,22 @@ def load_user_from_request(request):
 def init_db_day0():
     model.db.drop_all()
     model.db.create_all()
+
+
+def featureset_output_formatter(data=None, output='geojson'):
+    if output == 'geojson':
+        if data is None:
+            data = model.FeatureSet(route={}, boundary={})
+
+        return {
+            "kind": "FeatureSet",
+            "route": data.route,
+            "boundary": data.boundary
+        }
+    else: # TODO support other format such as yaml, simplified json (geojson-like but more compact)
+        return {
+        }
+
 
 if __name__ == '__main__':
     app.run(debug=True)
