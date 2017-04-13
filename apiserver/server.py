@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_restful import Resource, Api, reqparse
+from flask_restful import Resource, Api
 from flask_cors import CORS
 import flask_login
 import os
@@ -54,12 +54,10 @@ class FeatureSetEndpoint(Resource):
                 if item['geometry']['type'] == 'Polygon':
                     boundary = model.Boundary(item)
                     model.db.session.add(boundary)
-                    model.db.session.commit()
                 else:
                     route = model.Route(item)
                     model.db.session.add(route)
-                    model.db.session.commit()
-
+                model.db.session.commit()
 
 api.add_resource(FeatureSetEndpoint, '/featureset')
 
