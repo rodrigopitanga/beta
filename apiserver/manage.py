@@ -1,8 +1,10 @@
+from sqlalchemy import exc
 from flask_script import Manager
 from server import app
 from model import APIUser, Route, Boundary
 from validate_email import validate_email
-import json, os
+import json
+import os
 
 
 manager = Manager(app)
@@ -44,12 +46,15 @@ def load(geojson_file):
         for item in geojson['features']:
             if item['geometry']['type'].upper() == 'POINT':
                 db.session.add(Route(item))
-                db.session.commit()
                 point_counter += 1
             elif item['geometry']['type'].upper() == 'POLYGON':
                 db.session.add(Boundary(item))
-                db.session.commit()
                 polygon_counter += 1
+            try:
+                db.session.commit()
+            except exc.SQLAlchemyError as e:
+                print "Exception: {}".format(e)
+                pass
 
         print "Points: {}, Polygon: {}".format(point_counter, polygon_counter)
 

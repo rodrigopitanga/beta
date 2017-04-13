@@ -27,8 +27,14 @@ class Route(db.Model):
     def __init__(self, geojson):
         self.geo = func.ST_SetSRID(func.ST_GeomFromGeoJSON(json.dumps(geojson['geometry'])), 4326)
         self.name = geojson['properties']['name']
-        self.grade = geojson['properties']['grade']['value']
-        self.grade_type = geojson['properties']['grade']['type']
+        if 'grade' in geojson['properties']:
+            grade = geojson['properties']['grade']
+            self.grade = grade['value']
+            self.grade_type = grade['type']
+        else:
+            self.grade = ''
+            self.type = 'unknown'
+
         self.properties_json = geojson['properties']    # store raw data
 
     def __repr__(self):
@@ -70,6 +76,7 @@ class GradeType(db.Model):
 
 @event.listens_for(GradeType.__table__, 'after_create')
 def insert_initial_values(*args, **kwargs):
+    db.session.add(GradeType(id='unknown', full_name='Type Unknown'))
     db.session.add(GradeType(id='yds', full_name='Yosemite Decimal System'))
     db.session.add(GradeType(id='v', full_name='Hueco V-scale'))
     db.session.commit()
