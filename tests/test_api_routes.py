@@ -25,7 +25,7 @@ def test_query_by_radius(app, db, good_key, default_headers, post_geojson):
 
     with app.test_client() as client:
         latlng = utils.geojson_to_lat_lng(ret2['expected'])
-        radius = 1
+        radius = 50  # caustic cock should be about 1km from yin yang
         query_str = '&latlng={}&r={}'.format(latlng, radius)
         res = client.get('/routes?api_key=' + good_key + query_str, default_headers['get'])
         assert res.status_code == 200
