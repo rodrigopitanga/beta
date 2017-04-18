@@ -163,8 +163,7 @@ def search_within_boundary_by_id(boundary_id):
     }
 
 
-def search_within_radius_in_miles(location, radius, route=True, boundary=False):
-    r_in_meter = str(float(radius) * 1609.34)
+def search_within_radius_in_meters(location, radius, route=True, boundary=False):
     coordinates = location.split(",")
 
     route_rows = list()
@@ -172,13 +171,13 @@ def search_within_radius_in_miles(location, radius, route=True, boundary=False):
 
     if route:
         route_rows = db.session.query(Route).\
-            filter('ST_DistanceSphere(geo, ST_MakePoint(:lat,:lng))<=:r').\
-            params(lat=coordinates[0], lng=coordinates[1], r=r_in_meter).all()
+            filter('ST_DistanceSphere(geo, ST_MakePoint(:lng,:lat))<=:r').\
+            params(lng=coordinates[0], lat=coordinates[1], r=radius).all()
 
     if boundary:
         boundary_rows = db.session.query(Boundary).\
-            filter('ST_DistanceSphere(geo, ST_MakePoint(:lat,:lng))<=:r').\
-            params(lat=coordinates[0], lng=coordinates[1], r=r_in_meter).all()
+            filter('ST_DistanceSphere(geo, ST_MakePoint(:lng,:lat))<=:r').\
+            params(lng=coordinates[0], lat=coordinates[1], r=radius).all()
 
     route_json = {
         "type": "FeatureCollection",

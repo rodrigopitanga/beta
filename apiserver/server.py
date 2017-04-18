@@ -40,7 +40,7 @@ class FeatureSetEndpoint(Resource):
         if 'latlng' in request.args and 'r' in request.args:
             latlng = request.args['latlng']
             r = request.args['r']
-            featureset = model.search_within_radius_in_miles(location=latlng, radius=r, route=True, boundary=True)
+            featureset = model.search_within_radius_in_meters(location=latlng, radius=r, route=True, boundary=True)
             return featureset_output_formatter(featureset)
         else:
             return featureset_output_formatter()
@@ -69,7 +69,7 @@ class Route(Resource):
         if 'latlng' in request.args and 'r' in request.args:
             latlng = request.args['latlng']
             r = request.args['r']
-            featureset = model.search_within_radius_in_miles(location=latlng, radius=r)
+            featureset = model.search_within_radius_in_meters(location=latlng, radius=r)
             return featureset.route
         elif 'boundary_id' in request.args:
             features = model.search_within_boundary_by_id(request.args['boundary_id'])
