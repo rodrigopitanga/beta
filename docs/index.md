@@ -22,6 +22,8 @@ The easiest way to get started is to play with [a sample code on CodePen](http:/
 
 The project is under heavy development.  There is a [task](https://github.com/OpenBeta/design/issues/5) to autogenerate API documentation.
 
+
+
 # API Documentation
 ```
 GET /routes
@@ -46,8 +48,13 @@ Get climbing routes and crags within a search radius
 |r|Yes| Radius in meters. Example, `1200`| 
 
 
+
+
 # Contribution
 Yes please and thank you!
+
+
+
 
 # Copyright & License
 - Data (c) OpenStreetMap contributors, available under [CC-BY-SA](https://creativecommons.org/licenses/by-sa/4.0/)
