@@ -24,26 +24,26 @@ The project is under heavy development.  There is a [task](https://github.com/Op
 
 # API Documentation
 ```
-<b>GET</b>/routes
+GET /routes
 ```
 Get climbing routes within a search radius
 
 |Parameter|Required|Description|
 |---------|--------|-----------|
 |api_key|Yes| API access key|
-|latlng|Yes| Longitude,Latitude. Example `13.7372621,51.0504088`|
-|r|Yes| Radius in meters. Example 1200| 
+|latlng|Yes| Longitude,Latitude. Example, `13.7372621,51.0504088`|
+|r|Yes| Radius in meters. Example, 1200| 
 
 ```
-*GET* /featureset
+GET /featureset
 ```
 Get climbing routes and crags within a search radius
 
 |Parameter|Required|Description|
 |---------|--------|-----------|
 |api_key|Yes| API access key|
-|latlng|Yes| Longitude,Latitude. Example `13.7372621,51.0504088`|
-|r|Yes| Radius in meters. Example 1200| 
+|latlng|Yes| Longitude,Latitude. Example, `13.7372621,51.0504088`|
+|r|Yes| Radius in meters. Example, `1200`| 
 
 
 # Contribution
