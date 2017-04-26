@@ -13,7 +13,7 @@ $.ajax({
   url: api_url,
   success: function(data, textStatus, jqXHR ) { 
     console.log(data);
-    // something with the data  
+    // do something with the data  
   });
 
 ```
